@@ -6,3 +6,4 @@ logs
 *.hdr
 train/
 model/checkpoints/
+UNet3D/checkpoints/
