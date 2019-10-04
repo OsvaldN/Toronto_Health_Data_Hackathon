@@ -92,9 +92,9 @@ class CTData(data.Dataset):
         root = self.ROOT_PATH #TODO clean up 
         if True: #TODO remove indentation
             if self.list[i].startswith("P"):
-                path = os.listdir(os.path.join(root, "Positive_cases", self.list[i]))
+                path = tf.io.gfile.listdir(root + "/Positive_cases/" + self.list[i])
             else:
-                path = os.listdir(os.path.join(root, "Negative_cases", self.list[i]))
+                path = tf.io.gfile.listdir(root + "/Negative_cases/" + self.list[i])
 
             img_vol = torch.tensor(1, len(path) + (16-len(path)%16), target_size[0], target_size[1])
             seg_vol = torch.tensor(1, len(path) + (16-len(path)%16), target_size[0], target_size[1])
