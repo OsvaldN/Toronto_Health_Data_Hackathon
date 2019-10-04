@@ -29,7 +29,8 @@ class CTData(data.Dataset):
                  split='train',
                  augmentations=None,
                  target_size=(512, 512),
-                 t="3D"):
+                 t="3D",
+		 pos=True):
         self.target_size = target_size
         self.ROOT_PATH = root
         self.augmentations = augmentations
@@ -37,13 +38,15 @@ class CTData(data.Dataset):
         self.list = self.read_files()
         self.list = [x for x in self.list if not x.startswith('.')]
         self.t = t
+	self.pos = pos
 
     def read_files(self):
         root = self.ROOT_PATH #TODO clean up
         d = []
-        if True: #TODO remove indentation
+        if self.pos:
             for i in tf.io.gfile.listdir(root + "/Positive_cases"):
                 d.append(i)
+	else:
             for i in tf.io.gfile.listdir(root + "/Negative_cases"):
                 d.append(i)
         return d
