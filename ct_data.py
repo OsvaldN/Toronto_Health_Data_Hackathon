@@ -1,7 +1,7 @@
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
-import os, nibabel
+import os
 import sys, getopt
 import PIL
 from PIL import Image
@@ -58,17 +58,19 @@ class CTData(data.Dataset):
                  root='gs://vector-data-bucket-smh/C_Spine_Hackathon',
                  split='train',
                  augmentations=None,
-                 target_size=(512, 512)
+                 target_size=(512, 512),
                  t="3D"):
         self.target_size = target_size
         self.ROOT_PATH = root
         self.augmentations = augmentations
         self.split = split
         self.list = self.read_files()
+        self.t = t
 
     def read_files(self):
+        root = self.ROOT_PATH #TODO clean up
         d = []
-        if t=="3D":
+        if True: #TODO remove indentation
             for i in os.listdir(os.path.join(root, "Positive_cases")):
                 d.append(i)
             for i in os.listdir(os.path.join(root, "Negative_cases")):
@@ -79,8 +81,8 @@ class CTData(data.Dataset):
         return len(self.list)
 
     def __getitem__(self, i): # i is index
-        
-        if t=="3D":
+        root = self.ROOT_PATH #TODO clean up 
+        if True: #TODO remove indentation
             if self.list[i].startswith("P"):
                 path = os.listdir(os.path.join(root, "Positive_cases", self.list[i]))
             else:
@@ -116,11 +118,11 @@ class CTData(data.Dataset):
             for y in range(16-len(path)%16):
                 img_vol[0][len(path) + y] = torch.zeros(512,512)
                 seg_vol[0][len(path) + y] = torch.zeros(512,512)
-	    
-	    mu = img_vol.float().mean()
-	    sigma = img_vol.float().std()
+            
+            mu = img_vol.float().mean()
+            sigma = img_vol.float().std()
             img_vol = (img_vol - mu)/sigma
-	
+	    
             return img_vol, seg_vol
 
     def _transform(self, img, mask):
@@ -132,8 +134,7 @@ class CTData(data.Dataset):
 if __name__ == '__main__':
 
     DATA_DIR = 'gs://vector-data-bucket-smh/C_Spine_Hackathon'
-    augs = Compose([])
-    dataset = CTData(DATA_DIR, augmentations=augs)
+    dataset = CTData(DATA_DIR, augmentations=None)
     dloader = torch.utils.data.DataLoader(dataset, batch_size=1)
     for idx, batch in enumerate(dloader):
         img, mask = batch['image'], batch['mask']
