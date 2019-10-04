@@ -94,10 +94,10 @@ class CTData(data.Dataset):
         if True: #TODO remove indentation
             if self.list[i].startswith("P"):
                 #path = tf.io.gfile.listdir(root + "/Positive_cases/" + self.list[i])
-                path = root + "/Positive_cases/"
+                path = root + "/Positive_cases/" + str(self.list[i])
             else:
                 #path = tf.io.gfile.listdir(root + "/Negative_cases/" + self.list[i])
-                path = root + "/Negative_cases/"
+                path = root + "/Negative_cases/" + str(self.list[i])
 
             img_vol = torch.zeros(1, len(path) + (16-len(path)%16), self.target_size[0], self.target_size[1])
             seg_vol = torch.zeros(1, len(path) + (16-len(path)%16), self.target_size[0], self.target_size[1])
@@ -108,7 +108,8 @@ class CTData(data.Dataset):
                 enum = path + "full_CT_images/"
             else:
                 enum = path
-            print(enum)  
+            #print(enum)  
+            #print(tf.io.gfile.listdir(enum))
             for x, f in enumerate(tf.io.gfile.listdir(enum)):
                 full_img_path = os.path.join(path, "full_CT_images", f) if self.list[i].startswith("P") else os.path.join(path, f)
                 full_seg_path = os.path.join(path, "masks", f) if self.list[i].startswith("P") else None
