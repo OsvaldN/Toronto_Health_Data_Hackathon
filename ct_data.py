@@ -72,8 +72,8 @@ class CTData(data.Dataset):
             seg_vol = torch.zeros(1, len(tf.io.gfile.listdir(enum)), self.target_size[0], self.target_size[1])
 		
             for x, f in enumerate(tf.io.gfile.listdir(enum)):
-                full_img_path = os.path.join(path, "full_CT_images", f) if self.list[i].startswith("P") else os.path.join(path, f)
-                full_seg_path = os.path.join(path, "masks", f) if self.list[i].startswith("P") else None
+                full_img_path = path +  "full_CT_images/" + f if self.list[i].startswith("P") else path + f
+                full_seg_path = path + "masks/" + f if self.list[i].startswith("P") else None
                 #img = np.array(Image.open(full_img_path))
                 with tf.io.gfile.GFile(full_img_path, 'rb') as png_file:
                     png_bytes = png_file.read()
