@@ -135,8 +135,7 @@ class CTData(data.Dataset):
                 #img, seg = self.augmentations(img.astype(np.uint32), seg.astype(np.uint8))
 
                 img, seg = self._transform(img, seg)
-                img.squeeze()
-                seg.squeeze()
+                img = img.squeeze()
                 img_vol[0][x] = img
                 seg_vol[0][x] = seg
 	   
