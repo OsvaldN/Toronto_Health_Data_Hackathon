@@ -15,6 +15,13 @@ from skimage import transform
 from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 
+from google.colab import auth
+import tensorflow as tf
+
+tf.enable_eager_execution()
+auth.authenticate_user()
+
+
 def augment_gamma(data_sample, gamma_range=(0.5, 2), invert_image=False, epsilon=1e-7, per_channel=False,
                   retain_stats=False):
     if invert_image:
@@ -71,9 +78,9 @@ class CTData(data.Dataset):
         root = self.ROOT_PATH #TODO clean up
         d = []
         if True: #TODO remove indentation
-            for i in os.listdir(os.path.join(root, "Positive_cases")):
+            for i in tf.io.gfile.listdir(root + "/Positive_cases"):
                 d.append(i)
-            for i in os.listdir(os.path.join(root, "Negative_cases")):
+            for i in tf.io.gfile.listdir(root + "/Negative_cases"):
                 d.append(i)
         return d
 
