@@ -66,7 +66,6 @@ class CTData(data.Dataset):
                 path = root + "/Negative_cases/" + str(self.list[i])
 
             if self.list[i].startswith("P"):
-                print(path)
                 #enum = os.path.join(path, "full_CT_images")
                 enum = path + "full_CT_images/"
             else:
