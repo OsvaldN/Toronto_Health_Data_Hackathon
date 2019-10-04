@@ -99,8 +99,8 @@ class CTData(data.Dataset):
                 #path = tf.io.gfile.listdir(root + "/Negative_cases/" + self.list[i])
                 path = root + "/Negative_cases/" + str(self.list[i])
 
-            img_vol = torch.zeros(1, len(path) + (16-len(path)%16), self.target_size[0], self.target_size[1])
-            seg_vol = torch.zeros(1, len(path) + (16-len(path)%16), self.target_size[0], self.target_size[1])
+            img_vol = torch.zeros(1, len(path), self.target_size[0], self.target_size[1])
+            seg_vol = torch.zeros(1, len(path), self.target_size[0], self.target_size[1])
             print(path)
             if self.list[i].startswith("P"):
                 print(path)
@@ -135,6 +135,8 @@ class CTData(data.Dataset):
                 #img, seg = self.augmentations(img.astype(np.uint32), seg.astype(np.uint8))
 
                 img, seg = self._transform(img, seg)
+                img.squeeze()
+                seg.squeeze()
                 img_vol[0][x] = img
                 seg_vol[0][x] = seg
 	   
