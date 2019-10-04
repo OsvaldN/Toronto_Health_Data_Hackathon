@@ -72,6 +72,7 @@ class CTData(data.Dataset):
         self.augmentations = augmentations
         self.split = split
         self.list = self.read_files()
+        self.list = [x for x in self.list if not x.startswith('.')]
         self.t = t
 
     def read_files(self):
