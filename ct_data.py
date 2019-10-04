@@ -4,6 +4,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 import os
 import sys, getopt
 import PIL
+import numpy as np
 from PIL import Image
 import imageio
 import scipy.misc
@@ -92,15 +93,19 @@ class CTData(data.Dataset):
         root = self.ROOT_PATH #TODO clean up 
         if True: #TODO remove indentation
             if self.list[i].startswith("P"):
-                path = tf.io.gfile.listdir(root + "/Positive_cases/" + self.list[i])
+                #path = tf.io.gfile.listdir(root + "/Positive_cases/" + self.list[i])
+                path = root + "/Positive_cases/"
             else:
-                path = tf.io.gfile.listdir(root + "/Negative_cases/" + self.list[i])
+                #path = tf.io.gfile.listdir(root + "/Negative_cases/" + self.list[i])
+                path = root + "/Negative_cases"
 
-            img_vol = torch.tensor(1, len(path) + (16-len(path)%16), self.target_size[0], self.target_size[1])
-            seg_vol = torch.tensor(1, len(path) + (16-len(path)%16), self.target_size[0], self.target_size[1])
+            img_vol = torch.zeros(1, len(path) + (16-len(path)%16), self.target_size[0], self.target_size[1])
+            seg_vol = torch.zeros(1, len(path) + (16-len(path)%16), self.target_size[0], self.target_size[1])
             
             if self.list[i].startswith("P"):
-                enum = os.path.join(path, "full_CT_images")
+                print(path)
+                #enum = os.path.join(path, "full_CT_images")
+                enum = path + "full_CT_images"
             else:
                 enum = path
 
