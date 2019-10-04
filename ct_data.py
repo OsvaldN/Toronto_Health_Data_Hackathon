@@ -10,7 +10,6 @@ import scipy.misc
 from torch.utils import data
 import torch
 import random
-from .augmentations import augment_spatial, Compose, RandomRotate, PaddingCenterCrop
 from skimage import transform
 
 from scipy.ndimage.interpolation import map_coordinates
@@ -109,22 +108,19 @@ class CTData(data.Dataset):
                     img -= img.min()
         
                 img, seg = self.augmentations(img.astype(np.uint32), seg,astype(np.uint8))
-                img = augment_gamma(img)
-
-                if self.img_norm:
-                    mu = img.mean()
-                    sigma = img.std()
-                    img = (img - mu) / (sigma+1e-10)
-
 
                 img, seg = self._transform(img, seg)
                 img_vol[0][x] = img
                 seg_vol[0][x] = seg
-
+	   
             for y in range(16-len(path)%16):
                 img_vol[0][len(path) + y] = torch.zeros(512,512)
                 seg_vol[0][len(path) + y] = torch.zeros(512,512)
-
+	    
+	    mu = img_vol.float().mean()
+	    sigma = img_vol.float().std()
+            img_vol = (img_vol - mu)/sigma
+	
             return img_vol, seg_vol
 
     def _transform(self, img, mask):
@@ -132,35 +128,6 @@ class CTData(data.Dataset):
         mask = torch.from_numpy(mask).long()
         return img, mask
 
-
-    def random_elastic_deformation(self, image, alpha, sigma, mode='nearest',
-                                   random_state=None):
-        """Elastic deformation of images as described in [Simard2003]_.
-    ..  [Simard2003] Simard, Steinkraus and Platt, "Best Practices for
-        Convolutional Neural Networks applied to Visual Document Analysis", in
-        Proc. of the International Conference on Document Analysis and
-        Recognition, 2003.
-        """
-        assert len(image.shape) == 3
-
-        if random_state is None:
-            random_state = np.random.RandomState(None)
-
-        height, width, channels = image.shape
-
-        dx = gaussian_filter(2*random_state.rand(height, width) - 1,
-                         sigma, mode="constant", cval=0) * alpha
-        dy = gaussian_filter(2*random_state.rand(height, width) - 1,
-                         sigma, mode="constant", cval=0) * alpha
-
-        x, y = np.meshgrid(np.arange(height), np.arange(width), indexing='ij')
-        indices = (np.repeat(np.ravel(x+dx), channels),
-                np.repeat(np.ravel(y+dy), channels),
-                np.tile(np.arange(channels), height*width))
-
-        values = map_coordinates(image, indices, order=1, mode=mode)
-
-        return values.reshape((height, width, channels))
 
 if __name__ == '__main__':
 
