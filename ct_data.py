@@ -121,6 +121,6 @@ if __name__ == '__main__':
     DATA_DIR = 'gs://vector-data-bucket-smh/C_Spine_Hackathon'
     dataset = CTData(DATA_DIR, augmentations=None)
     dloader = torch.utils.data.DataLoader(dataset, batch_size=1)
-    for idx, batch in enumerate(dloader):
-        img, mask = batch['image'], batch['mask']
+    for idx, (img, mask) in enumerate(dloader):
+        
         print(mask.shape, img.shape, mask.max(), mask.min(), img.max(), img.min())
