@@ -101,15 +101,15 @@ class CTData(data.Dataset):
 
             img_vol = torch.zeros(1, len(path) + (16-len(path)%16), self.target_size[0], self.target_size[1])
             seg_vol = torch.zeros(1, len(path) + (16-len(path)%16), self.target_size[0], self.target_size[1])
-             
+            print(path)
             if self.list[i].startswith("P"):
                 print(path)
                 #enum = os.path.join(path, "full_CT_images")
-                enum = path + "full_CT_images"
+                enum = path + "full_CT_images/"
             else:
                 enum = path
-            
-            for x, f in enumerate(enum):
+            print(enum)  
+            for x, f in enumerate(tf.io.gfile.listdir(enum)):
                 full_img_path = os.path.join(path, "full_CT_images", f) if self.list[i].startswith("P") else os.path.join(path, f)
                 full_seg_path = os.path.join(path, "masks", f) if self.list[i].startswith("P") else None
                 img = np.array(Image.open(full_img_path))
