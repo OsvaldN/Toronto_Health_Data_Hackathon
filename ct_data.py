@@ -119,7 +119,14 @@ class CTData(data.Dataset):
         img = torch.from_numpy(img).float()
         mask = torch.from_numpy(mask).long()
         return img, mask
-
+	
+def get_loaders():
+    DATA_DIR = 'gs://vector-data-bucket-smh/C_Spine_Hackathon'
+    pos_dataset = CTData(DATA_DIR, augmentations=None, pos=True)
+    neg_dataset = CTData(DATA_DIR, augmentations=None, pos=False)
+    pos_loader = torch.utils.data.DataLoader(pos_dataset, batch_size=1, shuffle=True)
+    neg_loader = torch.utils.data.DataLoader(neg_dataset, batch_size=1, shuffle=True)
+    return (pos_loader, neg_loader)
 
 if __name__ == '__main__':
 
