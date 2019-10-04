@@ -35,18 +35,19 @@ class CTData(data.Dataset):
         self.ROOT_PATH = root
         self.augmentations = augmentations
         self.split = split
+        self.pos = pos
         self.list = self.read_files()
         self.list = [x for x in self.list if not x.startswith('.')]
         self.t = t
-	self.pos = pos
 
     def read_files(self):
         root = self.ROOT_PATH #TODO clean up
         d = []
-        if self.pos:
+        pos = self.pos
+        if pos:
             for i in tf.io.gfile.listdir(root + "/Positive_cases"):
                 d.append(i)
-	else:
+        else:
             for i in tf.io.gfile.listdir(root + "/Negative_cases"):
                 d.append(i)
         return d
@@ -124,8 +125,12 @@ class CTData(data.Dataset):
 if __name__ == '__main__':
 
     DATA_DIR = 'gs://vector-data-bucket-smh/C_Spine_Hackathon'
-    dataset = CTData(DATA_DIR, augmentations=None)
-    dloader = torch.utils.data.DataLoader(dataset, batch_size=1)
-    for idx, (img, mask) in enumerate(dloader):
-        
-        print(mask.shape, img.shape, mask.max(), mask.min(), img.max(), img.min())
+    pos_dataset = CTData(DATA_DIR, augmentations=None, pos=True)
+    neg_dataset = CTData(DATA_DIR, augmentations=None, pos=False)
+    pos_loader = torch.utils.data.DataLoader(pos_dataset, batch_size=1, shuffle=True)
+    neg_loader = torch.utils.data.DataLoader(neg_dataset, batch_size=1, shuffle=True)
+    for idx, (img, mask) in enumerate(pos_loader):
+        for _, (n_img, n_mask) in enumerate(neg_loader):
+            break
+        print(n_mask.shape, n_img.shape, n_mask.max(), n_mask.min(), n_img.max(), n_img.min())
+        print(mask.shape,   img.shape,   mask.max(),   mask.min(),   img.max(),   img.min()  )
