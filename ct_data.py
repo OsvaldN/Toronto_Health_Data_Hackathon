@@ -50,7 +50,11 @@ class CTData(data.Dataset):
         else:
             for i in tf.io.gfile.listdir(root + "/Negative_cases"):
                 d.append(i)
-        return d
+
+        if self.split == 'train':
+            return d[:int(len(d)*0.75)]
+        else:
+            return d[int(len(d)*0.75)]
 
     def __len__(self):
         return len(self.list)
