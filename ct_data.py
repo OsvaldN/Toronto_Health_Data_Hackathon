@@ -113,17 +113,26 @@ class CTData(data.Dataset):
             for x, f in enumerate(tf.io.gfile.listdir(enum)):
                 full_img_path = os.path.join(path, "full_CT_images", f) if self.list[i].startswith("P") else os.path.join(path, f)
                 full_seg_path = os.path.join(path, "masks", f) if self.list[i].startswith("P") else None
-                img = np.array(Image.open(full_img_path))
-        
+                #img = np.array(Image.open(full_img_path))
+                with tf.io.gfile.GFile(full_img_path, 'rb') as png_file:
+                    png_bytes = png_file.read()
+                    img = tf.image.decode_image(png_bytes)
+                    img = img.numpy()
+
+
                 if full_seg_path != None and os.path.exists(full_seg_path):
-                    seg = np.array(Image.open(full_seg_path))
+                    #seg = np.array(Image.open(full_seg_path))
+                    with tf.io.gfile.GFile(full_seg_path, 'rb') as png_file:
+                        png_bytes = png_file.read()
+                        seg = tf.image.decode_image(png_bytes)
+                        seg = seg.numpy() 
                 else:
                     seg = np.zeros((512,512))
 
                 if img.min() > 0:
                     img -= img.min()
         
-                img, seg = self.augmentations(img.astype(np.uint32), seg,astype(np.uint8))
+                #img, seg = self.augmentations(img.astype(np.uint32), seg.astype(np.uint8))
 
                 img, seg = self._transform(img, seg)
                 img_vol[0][x] = img
