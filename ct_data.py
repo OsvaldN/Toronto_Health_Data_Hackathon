@@ -86,7 +86,8 @@ class CTData(data.Dataset):
                     with tf.io.gfile.GFile(full_seg_path, 'rb') as png_file:
                         png_bytes = png_file.read()
                         seg = tf.image.decode_image(png_bytes)
-                        seg = seg.numpy() 
+                        seg = seg.numpy()
+                        seg = (np.sum(seg, axis=2) > 0).astype(np.float)
                 else:
                     seg = np.zeros((512,512,1))
 
