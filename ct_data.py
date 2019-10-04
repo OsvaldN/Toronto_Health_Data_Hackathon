@@ -81,14 +81,14 @@ class CTData(data.Dataset):
                     img = img.numpy()
 
 
-                if full_seg_path != None and os.path.exists(full_seg_path):
+                if full_seg_path != None and tf.gfile.Exists(full_seg_path): #os.path.exists(full_seg_path):
                     #seg = np.array(Image.open(full_seg_path))
                     with tf.io.gfile.GFile(full_seg_path, 'rb') as png_file:
                         png_bytes = png_file.read()
                         seg = tf.image.decode_image(png_bytes)
                         seg = seg.numpy() 
                 else:
-                    seg = np.zeros((512,512))
+                    seg = np.zeros((512,512,1))
 
                 if img.min() > 0:
                     img -= img.min()
@@ -97,6 +97,7 @@ class CTData(data.Dataset):
 
                 img, seg = self._transform(img, seg)
                 img = img.squeeze()
+                seg = seg.squeeze()
                 img_vol[0][x] = img
                 seg_vol[0][x] = seg
 	   
