@@ -61,17 +61,16 @@ class CTData(data.Dataset):
                 #path = tf.io.gfile.listdir(root + "/Negative_cases/" + self.list[i])
                 path = root + "/Negative_cases/" + str(self.list[i])
 
-            img_vol = torch.zeros(1, len(path), self.target_size[0], self.target_size[1])
-            seg_vol = torch.zeros(1, len(path), self.target_size[0], self.target_size[1])
-            print(path)
             if self.list[i].startswith("P"):
                 print(path)
                 #enum = os.path.join(path, "full_CT_images")
                 enum = path + "full_CT_images/"
             else:
                 enum = path
-            #print(enum)  
-            #print(tf.io.gfile.listdir(enum))
+		
+            img_vol = torch.zeros(1, len(tf.io.gfile.listdir(enum)), self.target_size[0], self.target_size[1])
+            seg_vol = torch.zeros(1, len(tf.io.gfile.listdir(enum)), self.target_size[0], self.target_size[1])
+		
             for x, f in enumerate(tf.io.gfile.listdir(enum)):
                 full_img_path = os.path.join(path, "full_CT_images", f) if self.list[i].startswith("P") else os.path.join(path, f)
                 full_seg_path = os.path.join(path, "masks", f) if self.list[i].startswith("P") else None
