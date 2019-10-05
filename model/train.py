@@ -19,7 +19,10 @@ from unet import UnetModel
 from model import deeplabv3_resnet101
 
 logging.basicConfig(level=logging.INFO)
+logging.getLogger().setLevel(logging.INFO)
 logger = logging.getLogger(__name__)
+
+RATIO = 0.000549764
 
 '''
 python train.py --data-path ../train/
@@ -37,111 +40,127 @@ def create_datasets(args):
     return dev_data, train_data
 
 
-def create_data_loaders(args):
-    dev_data, train_data = create_datasets(args)
-    display_data = [dev_data[i] for i in range(0, len(dev_data), len(dev_data) // 16)]
-
-    train_loader = DataLoader(
-        dataset=train_data,
-        batch_size=args.batch_size,
-        shuffle=True,
-        num_workers=8,
-        pin_memory=True,
-    )
-    dev_loader = DataLoader(
-        dataset=dev_data,
-        batch_size=args.batch_size,
-        num_workers=8,
-        pin_memory=True,
-    )
-    '''
-    display_loader = DataLoader(
-        dataset=display_data,
-        batch_size=16,
-        num_workers=8,
-        pin_memory=True,
-    )
-    '''
-    return train_loader, dev_loader#, display_loader
+def create_data_loaders(split='train'):
+    train_loader, dev_loader = get_loaders(split=split)
+    return train_loader, dev_loader
 
 
 def train_epoch(args, epoch, model, pos_loader, neg_loader, optimizer, writer):
     model.train()
     avg_loss = 0.
     start_epoch = start_iter = time.perf_counter()
-    global_step = epoch * len(data_loader)
- 
-    criterion = torch.nn.MSELoss()
+    global_step = epoch * len(pos_loader)
 
-    for iter, data in enumerate(pos_loader):
+    criterion = torch.nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([1/RATIO]).to(args.device))
+
+    for itr, data in enumerate(pos_loader):
         image, mask = data
-        print(image.shape)
-        print(mask.shape)
-        for n_image, n_mask in neg_loader:
-            break
+
+        n_image, n_mask = next(iter(neg_loader))
         
-        #TODO concatenate pos and neg i nbatch dim
+        mean_loss = 0
+        image = image[0][0]
+        mask = mask[0][0]
+        n_image = n_image[0][0]
+        n_mask = n_mask[0][0]
 
-        image, mask = image.unsqueeze(1).to(args.device), mask.to(args.device)
+        i=0
 
-        output = model(image)['out'].squeeze(1)
-        loss = criterion(output, mask)
+        for img,msk in [(image.permute(0,1,2), mask.permute(0,1,2)), (image.permute(1,0,2), mask.permute(1,0,2)), (image.permute(2,0,1), mask.permute(2,0,1)),
+                        (n_image.permute(0,1,2), n_mask.permute(0,1,2)), (n_image.permute(1,0,2), n_mask.permute(1,0,2)), (n_image.permute(2,0,1), n_mask.permute(2,0,1))]:
+            img = img.unsqueeze(1)
+            msk = msk.unsqueeze(1)
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            complete = 0
+            while complete < img.shape[0]:
+                t_img = img[complete:complete + args.batch_size]
+                t_msk = msk[complete:complete + args.batch_size]
 
-        avg_loss = 0.99 * avg_loss + 0.01 * loss.item() if iter > 0 else loss.item()
-        writer.add_scalar('TrainLoss', loss.item(), global_step + iter)
+                t_img, t_msk = t_img.to(args.device), t_msk.to(args.device)
+                output = model(t_img)['out']
+                loss = criterion(output, t_msk) * torch.Tensor([RATIO]).to(args.device)
 
-        if iter % args.report_interval == 0:
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                mean_loss += loss / torch.Tensor([RATIO]).to(args.device)
+                i += 1
+                complete += args.batch_size
+                break
+        loss = mean_loss/i
+
+        avg_loss = 0.99 * avg_loss + 0.01 * loss.item() if itr > 0 else loss.item()
+        writer.add_scalar('TrainLoss', loss.item(), global_step + itr)
+        if itr % args.report_interval == 0:
+
             logging.info(
                 f'Epoch = [{epoch:3d}/{args.num_epochs:3d}] '
-                f'Iter = [{iter:4d}/{len(data_loader):4d}] '
+                f'Iter = [{itr:4d}/{len(pos_loader):4d}] '
                 f'Loss = {loss.item():.4g} Avg Loss = {avg_loss:.4g} '
                 f'Time = {time.perf_counter() - start_iter:.4f}s',
             )
+        
+        torch.save(
+            {
+                'epoch': epoch,
+                'args': args,
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'best_dev_loss': 1e9,
+                'exp_dir': args.exp_dir
+            },
+            f=args.exp_dir / 'last_model.pt'
+        )
         start_iter = time.perf_counter()
     return avg_loss, time.perf_counter() - start_epoch
 
-def evaluate(args, epoch, model, data_loader, writer):
+def evaluate(args, epoch, model, pos_loader, neg_loader, writer):
     model.eval()
     losses = []
     start = time.perf_counter()
     with torch.no_grad():
-        for iter, data in enumerate(data_loader):
+        for itr, data in enumerate(pos_loader):
             image, mask = data
 
-            image, mask = image.unsqueeze(1).to(args.device), mask.to(args.device)
+            n_image, n_mask = next(iter(neg_loader))
 
-            output = model(image)['out'].squeeze(1)
+            mean_loss = 0
+            image = image[0][0]
+            mask = mask[0][0]
+            n_image = n_image[0][0]
+            n_mask = n_mask[0][0]
 
-            loss = F.mse_loss(output, mask)#, reduction='none')
+            criterion = torch.nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([1/RATIO]).to(args.device))
+
+            mean_loss = 0
+            image = torch.from_numpy(image[0][0])
+            mask = torch.from_numpy(mask[0][0])
+            i=0
+
+            for img,msk in [(image.permute(0,1,2), mask.permute(0,1,2)), (image.permute(1,0,2), mask.permute(1,0,2)), (image.permute(2,0,1), mask.permute(2,0,1))]:
+                img = img.unsqueeze(1)
+                msk = msk.unsqueeze(1)
+
+                complete = 0
+                while complete < img.shape[0]:
+                    t_img = img[complete:complete + args.batch_size]
+                    t_msk = msk[complete:complete + args.batch_size]
+
+                    t_img, t_msk = t_img.to(args.device), t_msk.to(args.device)
+                    output = model(t_img)['out']
+    
+                    loss = criterion(output, t_msk)
+                    mean_loss += loss
+                    i += 1
+                    complete += args.batch_size
+
+            loss = mean_loss/i
+
             losses.append(loss.item())
+            break
         writer.add_scalar('Dev_Loss', np.mean(losses), epoch)
     return np.mean(losses), time.perf_counter() - start
-
-
-def visualize(args, epoch, model, data_loader, writer):
-    def save_image(image, tag):
-        image -= image.min()
-        image /= image.max()
-        grid = torchvision.utils.make_grid(image, nrow=4, pad_value=1)
-        writer.add_image(tag, grid, epoch)
-
-    model.eval()
-    with torch.no_grad():
-        for iter, data in enumerate(data_loader):
-            image, mask = data
-
-            image, mask = image.unsqueeze(1).to(args.device), mask.to(args.device).unsqueeze(1)
-
-            output = model(image)['out']
-
-            save_image(mask, 'Target')
-            save_image(output, 'Segmentation')
-            save_image(torch.abs(mask - output), 'Error')
-            break
 
 
 def save_model(args, exp_dir, epoch, model, optimizer, best_dev_loss, is_new_best):
@@ -203,12 +222,13 @@ def main(args):
     logging.info(args)
     logging.info(model)
 
-    train_loader, dev_loader, display_loader = create_data_loaders(args)
+    pos_train_loader, neg_train_loader = create_data_loaders(split='train')
+    pos_dev_loader, neg_dev_loader = create_data_loaders(split='dev')
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, args.lr_step_size, gamma=args.gamma)
 
     for epoch in range(start_epoch, args.num_epochs):
-        train_loss, train_time = train_epoch(args, epoch, model, train_loader, optimizer, writer)
-        dev_loss, dev_time = evaluate(args, epoch, model, dev_loader, writer)
+        train_loss, train_time = train_epoch(args, epoch, model, pos_train_loader, neg_train_loader, optimizer, writer)
+        dev_loss, dev_time = evaluate(args, epoch, model, pos_dev_loader, neg_dev_loader, writer)
         #visualize(args, epoch, model, display_loader, writer)
         scheduler.step()
 
@@ -226,8 +246,8 @@ def create_arg_parser():
     parser = Args()
     parser.add_argument('--drop-prob', type=float, default=0.2, help='Dropout probability')
 
-    parser.add_argument('--batch-size', default=4, type=int, help='Mini batch size')
-    parser.add_argument('--num-epochs', type=int, default=80, help='Number of training epochs')
+    parser.add_argument('--batch-size', default=6, type=int, help='Mini batch size')
+    parser.add_argument('--num-epochs', type=int, default=40, help='Number of training epochs')
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
     parser.add_argument('--lr-step-size', type=int, default=1,
                         help='Period of learning rate decay')
@@ -238,7 +258,7 @@ def create_arg_parser():
     parser.add_argument('--loss', type=str,
                         help='loss criterion one of "MSE", "L1", "SSIM"')
 
-    parser.add_argument('--report-interval', type=int, default=100, help='Period of loss reporting')
+    parser.add_argument('--report-interval', type=int, default=1, help='Period of loss reporting')
     parser.add_argument('--data-parallel', default=False, action='store_true',
                         help='If set, use multiple GPUs using data parallelism')
     parser.add_argument('--device', type=str, default='cuda',

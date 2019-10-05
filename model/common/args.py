@@ -23,7 +23,7 @@ class Args(argparse.ArgumentParser):
         super().__init__(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
         self.add_argument('--seed', default=42, type=int, help='Seed for random number generators')
-        self.add_argument('--data-path', type=pathlib.Path, required=True,
+        self.add_argument('--data-path', type=pathlib.Path,
                           help='Path to the dataset')
 
         # Override defaults with passed overrides

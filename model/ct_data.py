@@ -52,9 +52,9 @@ class CTData(data.Dataset):
                 d.append(i)
 
         if self.split == 'train':
-            return d[:int(len(d)*0.75)]
+            return d[:int(len(d)*0.9)]
         else:
-            return d[int(len(d)*0.75)]
+            return d[int(len(d)*0.9):]
 
     def __len__(self):
         return len(self.list)
@@ -108,10 +108,7 @@ class CTData(data.Dataset):
                 seg = seg.squeeze()
                 img_vol[0][x] = img
                 seg_vol[0][x] = seg
-	   
-            for y in range(16-len(path)%16):
-                img_vol[0][len(path) + y] = torch.zeros(512,512)
-                seg_vol[0][len(path) + y] = torch.zeros(512,512)
+	
             
             mu = img_vol.float().mean()
             sigma = img_vol.float().std()
@@ -124,10 +121,10 @@ class CTData(data.Dataset):
         mask = torch.from_numpy(mask).long()
         return img, mask
 	
-def get_loaders():
+def get_loaders(split):
     DATA_DIR = 'gs://vector-data-bucket-smh/C_Spine_Hackathon'
-    pos_dataset = CTData(DATA_DIR, augmentations=None, pos=True)
-    neg_dataset = CTData(DATA_DIR, augmentations=None, pos=False)
+    pos_dataset = CTData(DATA_DIR, augmentations=None, pos=True, split=split)
+    neg_dataset = CTData(DATA_DIR, augmentations=None, pos=False, split=split)
     pos_loader = torch.utils.data.DataLoader(pos_dataset, batch_size=1, shuffle=True)
     neg_loader = torch.utils.data.DataLoader(neg_dataset, batch_size=1, shuffle=True)
     return (pos_loader, neg_loader)
