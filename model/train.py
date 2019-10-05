@@ -10,6 +10,7 @@ import torchvision
 from tensorboardX import SummaryWriter
 from torch.nn import functional as F
 from torch.utils.data import DataLoader
+from ct_data import get_loaders
 
 from common.args import Args
 from data import transforms
@@ -53,32 +54,33 @@ def create_data_loaders(args):
         num_workers=8,
         pin_memory=True,
     )
+    '''
     display_loader = DataLoader(
         dataset=display_data,
         batch_size=16,
         num_workers=8,
         pin_memory=True,
     )
-    return train_loader, dev_loader, display_loader
+    '''
+    return train_loader, dev_loader#, display_loader
 
 
-def train_epoch(args, epoch, model, data_loader, optimizer, writer):
+def train_epoch(args, epoch, model, pos_loader, neg_loader, optimizer, writer):
     model.train()
     avg_loss = 0.
     start_epoch = start_iter = time.perf_counter()
     global_step = epoch * len(data_loader)
+ 
+    criterion = torch.nn.MSELoss()
 
-    if args.loss == 'MSE':
-        criterion = torch.nn.MSELoss()
-
-    else:
-        criterion = torch.nn.SmoothL1Loss()
-
-    for iter, data in enumerate(data_loader):
+    for iter, data in enumerate(pos_loader):
         image, mask = data
-
-        if image.shape[0] == 1:
+        print(image.shape)
+        print(mask.shape)
+        for n_image, n_mask in neg_loader:
             break
+        
+        #TODO concatenate pos and neg i nbatch dim
 
         image, mask = image.unsqueeze(1).to(args.device), mask.to(args.device)
 
